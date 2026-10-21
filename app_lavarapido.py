@@ -4,18 +4,17 @@ from datetime import date
 from supabase import create_client, Client
 
 # ==========================================
-# CONFIGURAÇÃO DO SUPABASE (NUVEM)
+# CONFIGURAÇÃO DO SUPABASE (SECRETS NA NUVEM)
 # ==========================================
-# Substitua pelos dados reais copiados no painel do Supabase:
-SUPABASE_URL = "https://olgoddrtfmfsgsdrbcir.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sZ29kZHJ0Zm1mc2dzZHJiY2lyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0MTI0MjgsImV4cCI6MjEwNzk4ODQyOH0.Rdzhnno6ccNzO-7znPj41sremvXWCQnchMElZdNFa9s"
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Configuração da Página Web
 st.set_page_config(page_title="Lava Rápido Sorocaba Clean", layout="wide")
-st.title("🚗 Sistema de Gestão - Lava Rápido Sorocaba Clean (Nuven / Supabase)")
-st.write("Controle completo de caixa, agenda de veículos e mensagens inteligentes integrado à nuvem.")
+st.title("🚗 Sistema de Gestão - Lava Rápido Sorocaba Clean (Nuvem / Supabase)")
+st.write("Controle completo de caixa, agenda de veículos e mensagens inteligentes integrado à nuvem com segurança máxima.")
 
 # Criando as Abas de Navegação no Navegador
 aba1, aba2, aba3 = st.tabs(["💰 Caixa & Atendimentos", "📅 Agenda de Veículos", "🤖 Assistente de IA para Clientes"])
@@ -66,7 +65,6 @@ with aba1:
         salvar = st.form_submit_button("Concluir e Registrar no Caixa")
         if salvar and cliente and veiculo:
             try:
-                # Inserindo dados direto na tabela do Supabase
                 novo_registro = {
                     "id_atendimento": novo_id,
                     "nome_cliente": cliente,
