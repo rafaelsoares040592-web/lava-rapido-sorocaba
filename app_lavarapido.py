@@ -136,8 +136,8 @@ with aba4:
                         f"Responda de forma prática, comercial e amigável à seguinte questão do dono: '{pergunta_dono}'."
                     )
 
-                    # Utilizando o modelo gemini-2.0-flash ativo e estável via REST API
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+                    # Utilizando o modelo exigido pela API da Google: gemini-3.8-flash
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={GEMINI_API_KEY}"
                     headers = {"Content-Type": "application/json"}
                     payload = {
                         "contents": [{
