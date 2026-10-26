@@ -2,7 +2,8 @@ import pandas as pd
 import streamlit as st
 from datetime import date
 from supabase import create_client, Client
-from google import genai
+import requests
+import json
 
 # ==========================================
 # CONFIGURAÇÃO DE SEGURANÇA (SECRETS)
@@ -12,11 +13,8 @@ SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Configuração do Gemini AI
-try:
-    gemini_client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
-except:
-    gemini_client = genai.Client()
+# Chave da API do Gemini via secrets
+GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
 
 # Configuração da Página Web
 st.set_page_config(page_title="LavaRápido Inteligente", layout="wide", page_icon="🚗")
@@ -66,7 +64,6 @@ with aba2:
     st.header("Agenda Inteligente de Horários")
     st.write("Organize os horários de atendimento para evitar filas e otimizar os boxes.")
 
-    # Formulário simples para simular agendamento integrado à tabela
     with st.form("form_novo_agendamento"):
         st.subheader("➕ Novo Agendamento / Cliente")
         cli_nome = st.text_input("Nome do Cliente")
@@ -120,7 +117,7 @@ with aba3:
 
 
 # ==========================================
-# ABA 4: ASSISTENTE DE IA (GOOGLE GEMINI)
+# ABA 4: ASSISTENTE DE IA (GOOGLE GEMINI - REST API)
 # ==========================================
 with aba4:
     st.header("🤖 Assistente Inteligente (Google Gemini)")
@@ -129,20 +126,34 @@ with aba4:
     pergunta_dono = st.text_input("O que deseja perguntar à IA sobre o seu lava-rápido?", "Qual é o resumo do nosso faturamento atual e dicas para atrair mais clientes?")
 
     if st.button("Consultar Inteligência Artificial"):
-        with st.spinner("A analisar os dados e a estruturar a resposta..."):
-            try:
-                prompt_sistema = (
-                    f"Você é um consultor de negócios especialista em lava-rápidos no Brasil. "
-                    f"Responda de forma prática, comercial e amigável à seguinte questão do dono: '{pergunta_dono}'."
-                )
+        if not GEMINI_API_KEY:
+            st.error("A chave GEMINI_API_KEY não foi configurada nos secrets do Streamlit.")
+        else:
+            with st.spinner("A analisar os dados e a estruturar a resposta..."):
+                try:
+                    prompt_sistema = (
+                        f"Você é um consultor de negócios especialista em lava-rápidos no Brasil. "
+                        f"Responda de forma prática, comercial e amigável à seguinte questão do dono: '{pergunta_dono}'."
+                    )
 
-                resposta_ia = gemini_client.models.generate_content(
-                    model='gemini-flash-latest',
-                    contents=prompt_sistema
-                )
+                    # Usando a API REST direta do Gemini (evita erros de versão de SDK e 404/503)
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+                    headers = {"Content-Type": "application/json"}
+                    payload = {
+                        "contents": [{
+                            "parts": [{"text": prompt_sistema}]
+                        }]
+                    }
 
-                st.success("Análise gerada com sucesso!")
-                st.markdown(resposta_ia.text)
+                    resposta_api = requests.post(url, headers=headers, data=json.dumps(payload))
+                    
+                    if resposta_api.status_code == 200:
+                        dados_resposta = resposta_api.json()
+                        texto_gerado = dados_resposta["candidates"][0]["content"]["parts"][0]["text"]
+                        st.success("Análise gerada com sucesso!")
+                        st.markdown(texto_gerado)
+                    else:
+                        st.error(f"Erro na API do Gemini (Código {resposta_api.status_code}): {resposta_api.text}")
 
-            except Exception as e:
-                st.error(f"Erro ao conectar com a API do Gemini: {e}")
+                except Exception as e:
+                    st.error(f"Erro de conexão com o serviço de IA: {e}")
