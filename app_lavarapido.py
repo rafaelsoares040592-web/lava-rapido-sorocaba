@@ -137,7 +137,7 @@ with aba4:
                 )
 
                 resposta_ia = gemini_client.models.generate_content(
-                    model='gemini-3.8-flash',
+                    model='gemini-1.5-flash',
                     contents=prompt_sistema,
                 )
 
