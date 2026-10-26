@@ -136,10 +136,9 @@ with aba4:
                     f"Responda de forma prática, comercial e amigável à seguinte questão do dono: '{pergunta_dono}'."
                 )
 
-               response = client.models.generate_content(
-    model='gemini-2.5-flash',
-    contents=prompt_sistema
-)
+                resposta_ia = gemini_client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=prompt_sistema
                 )
 
                 st.success("Análise gerada com sucesso!")
