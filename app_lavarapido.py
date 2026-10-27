@@ -2,8 +2,7 @@ import pandas as pd
 import streamlit as st
 from datetime import date
 from supabase import create_client, Client
-import requests
-import json
+from google import genai
 
 # ==========================================
 # CONFIGURAÇÃO DE SEGURANÇA (SECRETS)
@@ -13,20 +12,23 @@ SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Chave da API do Gemini via secrets
-GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
+# Configuração do Gemini AI com SDK oficial e suporte a streaming
+try:
+    gemini_client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+except:
+    gemini_client = genai.Client()
 
 # Configuração da Página Web
 st.set_page_config(page_title="LavaRápido Inteligente", layout="wide", page_icon="🚗")
 st.title("🚗 LavaRápido Inteligente — Sistema de Gestão Profissional")
-st.write("Controle completo de caixa, fila do pátio, agendamentos e assistente inteligente com Google Gemini.")
+st.write("Controle completo de caixa, fila do pátio, agendamentos e assistente inteligente com streaming em tempo real.")
 
 # Criando as Abas de Navegação do MVP
 aba1, aba2, aba3, aba4 = st.tabs([
     "💰 Caixa & Faturamento", 
     "📅 Agenda de Veículos", 
     "🅿️ Fila do Pátio & OS", 
-    "🤖 Assistente de IA (Gemini)"
+    "🤖 Assistente de IA (Streaming)"
 ])
 
 # ==========================================
@@ -117,43 +119,31 @@ with aba3:
 
 
 # ==========================================
-# ABA 4: ASSISTENTE DE IA (GOOGLE GEMINI - REST API)
+# ABA 4: ASSISTENTE DE IA COM STREAMING (REAL-TIME)
 # ==========================================
 with aba4:
-    st.header("🤖 Assistente Inteligente (Google Gemini)")
-    st.write("Faça perguntas diretas sobre o seu negócio ou crie mensagens profissionais para os clientes.")
+    st.header("🤖 Assistente Inteligente com Streaming")
+    st.write("Faça perguntas à IA e veja a resposta a ser gerada palavra por palavra em tempo real na tela.")
 
     pergunta_dono = st.text_input("O que deseja perguntar à IA sobre o seu lava-rápido?", "Qual é o resumo do nosso faturamento atual e dicas para atrair mais clientes?")
 
-    if st.button("Consultar Inteligência Artificial"):
-        if not GEMINI_API_KEY:
-            st.error("A chave GEMINI_API_KEY não foi configurada nos secrets do Streamlit.")
-        else:
-            with st.spinner("A analisar os dados e a estruturar a resposta..."):
-                try:
-                    prompt_sistema = (
-                        f"Você é um consultor de negócios especialista em lava-rápidos no Brasil. "
-                        f"Responda de forma prática, comercial e amigável à seguinte questão do dono: '{pergunta_dono}'."
-                    )
+    if st.button("Consultar com Streaming Instantâneo"):
+        prompt_sistema = (
+            f"Você é um consultor de negócios especialista em lava-rápidos no Brasil. "
+            f"Responda de forma prática, comercial e amigável à seguinte questão do dono: '{pergunta_dono}'."
+        )
 
-                    # Utilizando o modelo exigido pela API da Google: gemini-3.8-flash
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={GEMINI_API_KEY}"
-                    headers = {"Content-Type": "application/json"}
-                    payload = {
-                        "contents": [{
-                            "parts": [{"text": prompt_sistema}]
-                        }]
-                    }
+        def gerar_streaming():
+            try:
+                resposta_stream = gemini_client.models.generate_content_stream(
+                    model='gemini-2.5-flash',
+                    contents=prompt_sistema
+                )
+                for chunk in resposta_stream:
+                    if chunk.text:
+                        yield chunk.text
+            except Exception as e:
+                yield f"\n⚠️ Erro ao gerar resposta em streaming: {e}"
 
-                    resposta_api = requests.post(url, headers=headers, data=json.dumps(payload))
-                    
-                    if resposta_api.status_code == 200:
-                        dados_resposta = resposta_api.json()
-                        texto_gerado = dados_resposta["candidates"][0]["content"]["parts"][0]["text"]
-                        st.success("Análise gerada com sucesso!")
-                        st.markdown(texto_gerado)
-                    else:
-                        st.error(f"Erro na API do Gemini (Código {resposta_api.status_code}): {resposta_api.text}")
-
-                except Exception as e:
-                    st.error(f"Erro de conexão com o serviço de IA: {e}")
+        # st.write_stream exibe os pedaços do texto instantaneamente com efeito de digitação fluida
+        st.write_stream(gerar_streaming())
